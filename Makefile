@@ -15,7 +15,7 @@ $(USPACE_TARGETS):
 $(KMAKE_TARGETS):
 	@$(MAKE) -f kmake.mk $@
 
-clean:
+clean: kclean
 	-@$(MAKE) -f uspace.mk clean
 
 distclean: clean
