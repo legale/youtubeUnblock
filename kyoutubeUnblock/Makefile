@@ -23,6 +23,8 @@ define KernelPackage/youtubeUnblock
 	FILES:=$(PKG_BUILD_DIR)/kyoutubeUnblock.$(LINUX_KMOD_SUFFIX)
 	URL:=https://github.com/Waujito/youtubeUnblock
 	MAINTAINER:=Vadim Vetrov <vetrovvd@gmail.com>
+	KCONFIG:=\
+					 CONFIG_MODULE_UNLOAD=y
 endef
 
 define Build/Prepare
@@ -35,6 +37,7 @@ define Build/Compile
 		ARCH="$(LINUX_KARCH)" \
 		CROSS_COMPILE="$(TARGET_CROSS)" \
 		M="$(PKG_BUILD_DIR)" \
+		CONFIG_MODULE_UNLOAD=y \
 		CONFIG_kyoutubeUnblock=m \
 		modules
 endef
