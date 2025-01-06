@@ -189,7 +189,7 @@ if ((fake_bitmask) & strategy)
 
 #define DEFAULT_SNISTR "googlevideo.com,ggpht.com,ytimg.com,youtube.com,play.google.com,youtu.be,googleapis.com,googleusercontent.com,gstatic.com,l.google.com"
 
-#define DEFAULT_EXCLUDE_DOMAINS "anydesk.com"
+#define DEFAULT_EXCLUDE_DOMAINS ".ru,anydesk.com"
 
 
 enum {
