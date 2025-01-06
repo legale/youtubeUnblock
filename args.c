@@ -12,6 +12,10 @@ static int errno = 0;
 #define strtol kstrtol
 #endif
 
+static const char default_snistr[] = DEFAULT_SNISTR;
+static const char default_exclude_domains[] = DEFAULT_EXCLUDE_DOMAINS;
+
+
 struct config_t config = default_config_set; 
 
 static int parse_sni_domains(struct domains_list **dlist, const char *domains_str, size_t domains_strlen) {
@@ -1034,6 +1038,12 @@ int init_section_config(struct section_config_t **section, struct section_config
 		return -ENOMEM;
 
 	ret = parse_sni_domains(&def_section->sni_domains, default_snistr, sizeof(default_snistr));
+	if (ret < 0) {
+		free(def_section);
+		return ret;
+	}
+
+	ret = parse_sni_domains(&def_section->exclude_sni_domains, default_exclude_domains, sizeof(default_exclude_domains));
 	if (ret < 0) {
 		free(def_section);
 		return ret;
