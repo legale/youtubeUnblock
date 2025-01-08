@@ -363,18 +363,33 @@ drop:
 }
 
 
-static struct nf_hook_ops ykb_nf_reg __read_mostly = {
-	.hook		= ykb_nf_hook,
-	.pf		= NFPROTO_IPV4,
-	.hooknum	= NF_INET_POST_ROUTING,
-	.priority	= NF_IP_PRI_MANGLE,
+static struct nf_hook_ops ykb_nf_forward_reg __read_mostly = {
+	.hook     = ykb_nf_hook,
+	.pf       = NFPROTO_IPV4,
+	.hooknum  = NF_INET_POST_ROUTING,
+	.priority = NF_IP_PRI_FIRST,
 };
 
-static struct nf_hook_ops ykb6_nf_reg __read_mostly = {
-	.hook		= ykb_nf_hook,
-	.pf		= NFPROTO_IPV6,
-	.hooknum	= NF_INET_POST_ROUTING,
-	.priority	= NF_IP6_PRI_MANGLE,
+static struct nf_hook_ops ykb_nf_local_out_reg __read_mostly = {
+	.hook     = ykb_nf_hook,
+	.pf       = NFPROTO_IPV4,
+	.hooknum  = NF_INET_LOCAL_OUT,
+	.priority = NF_IP_PRI_FIRST,
+};
+
+// Аналогично для IPv6
+static struct nf_hook_ops ykb6_nf_forward_reg __read_mostly = {
+	.hook     = ykb_nf_hook,
+	.pf       = NFPROTO_IPV6,
+	.hooknum  = NF_INET_POST_ROUTING,
+	.priority = NF_IP_PRI_FIRST,
+};
+
+static struct nf_hook_ops ykb6_nf_local_out_reg __read_mostly = {
+	.hook     = ykb_nf_hook,
+	.pf       = NFPROTO_IPV6,
+	.hooknum  = NF_INET_LOCAL_OUT,
+	.priority = NF_IP_PRI_FIRST,
 };
 
 static int __init ykb_init(void) {
@@ -385,21 +400,44 @@ static int __init ykb_init(void) {
 	ret = open_raw_socket();
 	if (ret < 0) goto err;
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,13,0)
+	// Регистрация для FORWARD
+	#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,13,0)
 	struct net *n;
-
 	for_each_net(n) {
-		ret = nf_register_net_hook(n, &ykb_nf_reg);
+		ret = nf_register_net_hook(n, &ykb_nf_forward_reg);
 		if (ret < 0) { 
-			lgerror(ret, "register net_hook");
+			lgerror(ret, "register forward net_hook");
+		} else {
+			lginfo("register forward net_hook successfull");
 		}
 	}
-#else
-	ret = nf_register_hook(&ykb_nf_reg);
+	#else
+	ret = nf_register_hook(&ykb_nf_forward_reg);
 	if (ret < 0) {
-		lgerror(ret, "register net_hook");
+		lgerror(ret, "register forward net_hook");
+	} else {
+		lginfo("register forward net_hook successfull");
 	}
-#endif
+	#endif
+
+	// Регистрация для LOCAL_OUT
+	#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,13,0)
+	for_each_net(n) {
+		ret = nf_register_net_hook(n, &ykb_nf_local_out_reg);
+		if (ret < 0) { 
+			lgerror(ret, "register local_out net_hook");
+		} else {
+			lginfo("register local_out net_hook successfull");
+		}
+	}
+	#else
+	ret = nf_register_hook(&ykb_nf_local_out_reg);
+	if (ret < 0) {
+		lgerror(ret, "register local_out net_hook");
+	} else {
+		lginfo("register local_out net_hook successfull");
+	}
+	#endif
 
 
 	if (config.use_ipv6) {
@@ -410,49 +448,79 @@ static int __init ykb_init(void) {
 			goto ipv6_fallback;
 		}
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,13,0)
-		struct net *n;
+		// Регистрация для IPv6 FORWARD
+		#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,13,0)
 		for_each_net(n) {
-			ret = nf_register_net_hook(n, &ykb6_nf_reg);
+			ret = nf_register_net_hook(n, &ykb6_nf_forward_reg);
 			if (ret < 0) {
-				lgerror(ret, "register net6_hook");
+				lgerror(ret, "register ipv6 forward net_hook");
+			} else {
+				lginfo("register ipv6 forward net_hook successfull");
 			}
 		}
-#else
-		ret = nf_register_hook(&ykb6_nf_reg);
+		#else
+		ret = nf_register_hook(&ykb6_nf_forward_reg);
 		if (ret < 0) {
-			lgerror(ret, "register net6_hook");
+			lgerror(ret, "register ipv6 forward net_hook");
+		} else {
+			lginfo("register ipv6 forward net_hook successfull");
 		}
-#endif
+		#endif
+
+		// Регистрация для IPv6 LOCAL_OUT
+		#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,13,0)
+		for_each_net(n) {
+			ret = nf_register_net_hook(n, &ykb6_nf_local_out_reg);
+			if (ret < 0) {
+				lgerror(ret, "register ipv6 local_out net_hook");
+			} else {
+				lginfo("register ipv6 local_out net_hook successfull");
+			}
+		}
+		#else
+		ret = nf_register_hook(&ykb6_nf_local_out_reg);
+		if (ret < 0) {
+			lgerror(ret, "register ipv6 local_out net_hook");
+		} else {
+			lginfo("register ipv6 local_out net_hook successfull");
+		}
+		#endif
 	}
 
-ipv6_fallback:
+	ipv6_fallback:
 	lginfo("youtubeUnblock kernel module started.\n");
 	return 0;
 
-err:
+ err:
 	return ret;
 }
 
+
 static void __exit ykb_destroy(void) {
 	if (config.use_ipv6) {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,13,0)
+		#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,13,0)
 		struct net *n;
-		for_each_net(n)
-			nf_unregister_net_hook(n, &ykb6_nf_reg);
-#else
-		nf_unregister_hook(&ykb6_nf_reg);
-#endif
+		for_each_net(n) {
+			nf_unregister_net_hook(n, &ykb6_nf_forward_reg);
+			nf_unregister_net_hook(n, &ykb6_nf_local_out_reg);
+		}
+		#else
+		nf_unregister_hook(&ykb6_nf_forward_reg);
+		nf_unregister_hook(&ykb6_nf_local_out_reg);
+		#endif
 		close_raw6_socket();
 	}
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,13,0)
+	#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,13,0)
 	struct net *n;
-	for_each_net(n)
-		nf_unregister_net_hook(n, &ykb_nf_reg);
-#else
-	nf_unregister_hook(&ykb_nf_reg);
-#endif
+	for_each_net(n) {
+		nf_unregister_net_hook(n, &ykb_nf_forward_reg);
+		nf_unregister_net_hook(n, &ykb_nf_local_out_reg);
+	}
+	#else
+	nf_unregister_hook(&ykb_nf_forward_reg);
+	nf_unregister_hook(&ykb_nf_local_out_reg);
+	#endif
 
 	close_raw_socket();
 
