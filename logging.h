@@ -2,7 +2,7 @@
 #define LOGGING_H
 #include "config.h"
 
-#define LOG_LEVEL (config.verbose)
+#define LOG_LEVEL (7)
 
 #ifdef KERNEL_SPACE
 #include <linux/kernel.h>

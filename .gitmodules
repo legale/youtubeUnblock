@@ -1,3 +1,0 @@
-[submodule ".github/builder_containers/entware_docker"]
-	path = .github/builder_containers/entware_docker
-	url = https://github.com/Entware/docker.git

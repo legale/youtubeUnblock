@@ -1,0 +1,1 @@
+cmd_/mnt/2tb/sdk1/youtubeUnblock/Module.symvers :=  sed 's/ko$$/o/'  /mnt/2tb/sdk1/youtubeUnblock/modules.order | scripts/mod/modpost -m      -o /mnt/2tb/sdk1/youtubeUnblock/Module.symvers -e -i Module.symvers -T - 

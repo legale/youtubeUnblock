@@ -1,26 +1,31 @@
-USPACE_TARGETS := default all install uninstall dev run_dev
-KMAKE_TARGETS := kmake kload kunload kreload xmod xtclean
+# Makefile for building kernel module
 
-PKG_VERSION := 1.0.0
-PKG_RELEASE := 6
+name = yunblock
 
-PKG_FULLVERSION := $(PKG_VERSION)-$(PKG_RELEASE)
+# Имя модуля ядра
+obj-m += $(name).o
 
-export PKG_VERSION PKG_RELEASE PKG_FULLVERSION
+# Указание пути к заголовочным файлам ядра
+KDIR := /lib/modules/$(shell uname -r)/build
 
-.PHONY: $(USPACE_TARGETS) $(KMAKE_TARGETS) clean
-$(USPACE_TARGETS):
-	@$(MAKE) -f uspace.mk $@
+# Каталог текущего проекта
+PWD := $(shell pwd)
+ccflags-y := -DKERNEL_SPACE
 
-$(KMAKE_TARGETS):
-	@$(MAKE) -f kmake.mk $@
-
-clean: kclean
-	-@$(MAKE) -f uspace.mk clean
-
-distclean: clean
-	-@$(MAKE) -f uspace.mk distclean
+# Цель для сборки модуля
+all:
+	mkdir -p $(KDIR)
+	$(MAKE) -C $(KDIR) M=$(PWD) modules
 
 
-kclean:
-	-@$(MAKE) -f kmake.mk kclean
+# Чистка скомпилированных файлов
+clean:
+	$(MAKE) -C $(KDIR) M=$(PWD) EXTRA_CFLAGS="$(ccflags-y)" clean
+
+# Загрузка модуля в ядро
+insmod: all
+	sudo insmod $(name).ko
+
+# Удаление модуля из ядра
+rmmod:
+	sudo rmmod $(name)
