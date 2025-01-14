@@ -1,1 +1,1 @@
-/mnt/2tb/sdk1/youtubeUnblock/yunblock.o
+/home/ru/youtubeUnblock/yunblock.o

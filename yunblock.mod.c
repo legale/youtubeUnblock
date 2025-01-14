@@ -6,6 +6,11 @@
 #include <linux/vermagic.h>
 #include <linux/compiler.h>
 
+#ifdef CONFIG_UNWINDER_ORC
+#include <asm/orc_header.h>
+ORC_HEADER;
+#endif
+
 BUILD_SALT;
 BUILD_LTO_INFO;
 
@@ -27,24 +32,38 @@ MODULE_INFO(retpoline, "Y");
 #endif
 
 
-static const struct modversion_info ____versions[]
-__used __section("__versions") = {
-	{ 0xbdfb6dbb, "__fentry__" },
-	{ 0x5b422224, "init_net" },
-	{ 0x85cafbf5, "nf_register_net_hook" },
-	{ 0x92997ed8, "_printk" },
-	{ 0x5b8239ca, "__x86_return_thunk" },
-	{ 0xd8eae794, "nf_unregister_net_hook" },
-	{ 0xd36dc10c, "get_random_u32" },
-	{ 0xe113bbbc, "csum_partial" },
-	{ 0xb47cca30, "csum_ipv6_magic" },
-	{ 0x2472f2b, "__pskb_pull_tail" },
-	{ 0xfaf9bb1b, "dev_get_by_index" },
-	{ 0x46a241aa, "eth_type_trans" },
-	{ 0xa672ce0a, "__dev_queue_xmit" },
-	{ 0x2031ced4, "kfree_skb_reason" },
-	{ 0xc9d7e676, "module_layout" },
-};
+
+static const char ____versions[]
+__used __section("__versions") =
+	"\x10\x00\x00\x00\x7e\x3a\x2c\x12"
+	"_printk\0"
+	"\x1c\x00\x00\x00\xca\x39\x82\x5b"
+	"__x86_return_thunk\0\0"
+	"\x20\x00\x00\x00\xd0\x19\x95\xc4"
+	"nf_unregister_net_hook\0\0"
+	"\x1c\x00\x00\x00\x11\x40\xcb\x6b"
+	"dev_get_by_index\0\0\0\0"
+	"\x18\x00\x00\x00\x0c\xc1\x6d\xd3"
+	"get_random_u32\0\0"
+	"\x18\x00\x00\x00\xbc\xbb\x13\xe1"
+	"csum_partial\0\0\0\0"
+	"\x18\x00\x00\x00\x30\xca\x7c\xb4"
+	"csum_ipv6_magic\0"
+	"\x1c\x00\x00\x00\x23\xbb\x43\x32"
+	"__pskb_pull_tail\0\0\0\0"
+	"\x1c\x00\x00\x00\x60\xa6\x43\xbc"
+	"kfree_skb_reason\0\0\0\0"
+	"\x14\x00\x00\x00\xbb\x6d\xfb\xbd"
+	"__fentry__\0\0"
+	"\x14\x00\x00\x00\xe6\xd0\xd7\x26"
+	"init_net\0\0\0\0"
+	"\x20\x00\x00\x00\xea\x74\x9b\x39"
+	"nf_register_net_hook\0\0\0\0"
+	"\x18\x00\x00\x00\xd7\xd3\x75\x6d"
+	"module_layout\0\0\0"
+	"\x00\x00\x00\x00\x00\x00\x00\x00";
 
 MODULE_INFO(depends, "");
 
+
+MODULE_INFO(srcversion, "F28DDBA1A318648CC840494");

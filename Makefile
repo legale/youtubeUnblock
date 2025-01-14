@@ -10,7 +10,7 @@ KDIR := /lib/modules/$(shell uname -r)/build
 
 # Каталог текущего проекта
 PWD := $(shell pwd)
-ccflags-y := -DKERNEL_SPACE
+ccflags-y := -DKERNEL_SPACE -I/usr/src/linux-headers-6.8.0-41/include
 
 # Цель для сборки модуля
 all:

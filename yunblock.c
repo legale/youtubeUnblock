@@ -11,8 +11,9 @@
 
 #define PKT_ACCEPT	0
 #define PKT_DROP	1
+#define PKT_PROCESSED	2
 
-int process_packet(struct sk_buff *skb) {
+static int process_packet(struct sk_buff *skb) {
     struct iphdr *iph = ip_hdr(skb);
     struct tcphdr *tcph;
     int iphv = 0;
@@ -72,6 +73,8 @@ int process_packet(struct sk_buff *skb) {
         lgdebugmsg("Updated IPv6 and TCP checksums");
     }
 
+
+    skb->mark |= 0x4;
     lgdebugmsg("Packet processing complete for device: %s", skb->dev->name);
 
     return PKT_ACCEPT;
@@ -109,10 +112,17 @@ static int send_raw_socket(struct sk_buff *skb) {
 
 // Netfilter hook function
 static unsigned int ykb_nf_hook(void *priv, struct sk_buff *skb, const struct nf_hook_state *state) {
+    struct net_device *dev = NULL;
     int ret;
 
     if (skb->head == NULL) 
         return NF_ACCEPT;
+
+    if(skb->mark & 0x4){
+        lgerror(ret, "0x4 mark found");
+        return NF_ACCEPT;
+    }
+
 
     ret = skb_linearize(skb);
     if (ret < 0) {
@@ -120,22 +130,38 @@ static unsigned int ykb_nf_hook(void *priv, struct sk_buff *skb, const struct nf
         return NF_ACCEPT;
     }
 
+    dev = dev_get_by_index(&init_net, skb->skb_iif);
+    if (!dev) {
+        lgerror(ENODEV, "%u skb->skb_iif not found", skb->skb_iif);
+        return NF_ACCEPT;
+    }
+    const char *iif = dev->name;
+    lgerror(ret, ">iif: %s skb->dev->name: %s", iif, skb->dev->name);
+
+    if (strncmp(iif, "lo", sizeof("lo"))) 
+        return NF_ACCEPT;
+
+    if (strncmp(skb->dev->name, "lo", sizeof("lo"))) 
+        return NF_ACCEPT;
+
     int vrd = process_packet(skb);
 
     switch (vrd) {
         case PKT_ACCEPT:
-            return NF_ACCEPT;
+            kfree_skb(skb);
+            return NF_STOLEN;
         case PKT_DROP:
             kfree_skb(skb);
             return NF_STOLEN;
+        case PKT_PROCESSED:
         default:
             ret = send_raw_socket(skb);
             if (ret < 0) {
                 lgerror(ret, "Failed to send packet");
-                kfree_skb(skb);
-                return NF_STOLEN;
+                return NF_ACCEPT;
             }
-            return NF_ACCEPT;
+            kfree_skb(skb);
+            return NF_STOLEN;
     }
 }
 
@@ -162,7 +188,7 @@ static int __init ykb_init(void) {
 // Module cleanup
 static void __exit ykb_deinit(void) {
     nf_unregister_net_hook(&init_net, &ykb_nf_reg);
-    lginfo("youtubeUnblock kernel module destroyed.\n");
+    lginfo("youtubeUnblock kernel module unloaded.\n");
 }
 
 module_init(ykb_init);
