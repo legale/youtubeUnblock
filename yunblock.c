@@ -6,8 +6,8 @@
 #include <linux/netfilter.h>
 #include <linux/netfilter_ipv4.h>
 #include <linux/skbuff.h>
-#include <net/neighbour.h>
 #include <net/arp.h>
+#include <net/neighbour.h>
 
 #include "logging.h"
 
@@ -128,131 +128,150 @@ static unsigned int ykb_nf_hook(void *priv, struct sk_buff *skb,
                                 const struct nf_hook_state *state) {
   struct net_device *dev = NULL;
   const char *iif;
-  struct ethhdr *eth;
+  struct ethhdr *eth, *eth2;
   struct sk_buff *skb2;
   int ret;
 
+  // skip skb without head
+  if (skb->head == NULL)
+    return NF_ACCEPT;
+
+  if (!strcmp(skb->dev->name, "lo"))
+    return NF_ACCEPT;
+
   // Клонируем пакет для дальнейшей обработки
-  skb2 = skb_clone(skb, GFP_ATOMIC);
+  skb2 = skb_copy(skb, GFP_ATOMIC);
   if (!skb2) {
     printk(KERN_ERR "failed to clone skb\n");
     return NF_DROP; // Если не удалось клонировать, просто дропаем пакет
   } else {
     printk(KERN_INFO "skb_clone to skb2\n");
+    // skb_set_owner_w(skb2, skb->sk);
   }
+
+  // skb_reset_mac_header(skb2);
+  // memset(skb2->cb, 0, sizeof(skb2->cb));
 
   // Check if this packet has an Ethernet header
-  eth = eth_hdr(skb2);
-  if (eth) {
-      printk(KERN_INFO "src: %pM dst: %pM\n", eth->h_source, eth->h_dest);
-  } else {
-      printk(KERN_INFO "no Ethernet header found\n");
-  }
+  eth = eth_hdr(skb);
+  if (eth) printk(KERN_INFO "before skb  src: %pM dst: %pM\n", eth->h_source, eth->h_dest);
+  eth2 = eth_hdr(skb2);
+  if (eth) printk(KERN_INFO "before skb2 src: %pM dst: %pM\n", eth2->h_source, eth2->h_dest);
 
-  struct neighbour *neigh = neigh_lookup(&arp_tbl, &ip_hdr(skb2)->daddr, skb->dev);
+
+  struct neighbour *neigh = neigh_lookup(&arp_tbl, &ip_hdr(skb2)->daddr, skb2->dev);
   if (neigh) {
-      if (neigh->nud_state & NUD_VALID) {
-          memcpy(eth_hdr(skb2)->h_dest, neigh->ha, ETH_ALEN);
-          memcpy(eth->h_dest, neigh->ha, ETH_ALEN);
-          printk(KERN_INFO "resolved mac: %pM\n", eth_hdr(skb2)->h_dest);
-      } else {
-          printk(KERN_INFO "mac not yet resolved\n");
-      }
-      neigh_release(neigh);
+    if (neigh->nud_state & NUD_VALID) {
+      memcpy(eth2->h_dest, neigh->ha, ETH_ALEN);
+      // printk(KERN_INFO "resolved mac: %pM\n", eth_hdr(skb2)->h_dest);
+    } else {
+      printk(KERN_INFO "mac not yet resolved\n");
+    }
+    neigh_release(neigh);
   } else {
-      printk(KERN_INFO "no neighbour entry found\n");
+    printk(KERN_INFO "no neighbour entry found\n");
   }
 
-  // // Set source MAC if not set (optional but good practice)
-  // if (!is_valid_ether_addr(eth->h_source)) {
-  //     memcpy(eth->h_source, skb2->dev->dev_addr, ETH_ALEN);
-  //     printk(KERN_INFO "Set source MAC to %pM\n", eth->h_source);
+  // Set source MAC if not set (optional but good practice)
+  // if (!is_valid_ether_addr(eth2->h_source)) {
+  memcpy(eth2->h_source, skb2->dev->dev_addr, ETH_ALEN);
+  // printk(KERN_INFO "Set source MAC to %pM\n", eth2->h_source);
   // }
+  printk(KERN_INFO "after skb  set src: %pM dst: %pM\n", eth_hdr(skb)->h_source, eth_hdr(skb)->h_dest);
+  printk(KERN_INFO "after skb2 set src: %pM dst: %pM\n", eth_hdr(skb2)->h_source, eth_hdr(skb2)->h_dest);
 
   // Проверяем интерфейс и другие параметры пакета перед отправкой
   if (!skb2->dev) {
     printk(KERN_ERR "no network device attached to skb\n");
     kfree_skb(skb2);
-    return NF_DROP; // Если нет устройства для отправки, дропаем пакет
+    return NF_ACCEPT; // Если нет устройства для отправки, дропаем пакет
   }
 
   // Отправляем клонированный пакет
-  printk(KERN_INFO
-         "Sending packet: len=%d, proto=%04x, src=%pI4, dst=%pI4, dev=%s\n",
-         skb2->len, ntohs(skb2->protocol), &ip_hdr(skb2)->saddr,
-         &ip_hdr(skb2)->daddr, skb2->dev->name);
+  if (ip_hdr(skb2)->protocol == IPPROTO_TCP ||
+      ip_hdr(skb2)->protocol == IPPROTO_UDP) {
+    struct udphdr *udph = (struct udphdr *)((u8 *)ip_hdr(skb2) + (ip_hdr(skb2)->ihl << 2));
+    printk(KERN_INFO "Sending packet: len=%d, proto=%04x, src=%pI4:%u, "
+                     "dst=%pI4:%u, dev=%s\n",
+           skb2->len, ntohs(skb2->protocol), &ip_hdr(skb2)->saddr,
+           ntohs(udph->source), &ip_hdr(skb2)->daddr, ntohs(udph->dest),
+           skb2->dev->name);
+  } else {
+    // Handle non-TCP/UDP protocols or just print without ports
+    printk(KERN_INFO
+           "Sending packet: len=%d, proto=%04x, src=%pI4, dst=%pI4, dev=%s\n",
+           skb2->len, ntohs(skb2->protocol), &ip_hdr(skb2)->saddr,
+           &ip_hdr(skb2)->daddr, skb2->dev->name);
+  }
+
   ret = dev_queue_xmit(skb2);
   if (ret < 0) {
     printk(KERN_ERR "failed to transmit skb: %d\n", ret);
     kfree_skb(skb2);
-  } else if (ret > 0){
+  } else if (ret > 0) {
     printk(KERN_ERR "failed to transmit skb: %d\n", ret);
     kfree_skb(skb2);
   } else {
     printk(KERN_INFO "sent skb2: %d", ret);
   }
 
-
   return NF_ACCEPT;
-
-  if (skb->head == NULL)
-    return NF_ACCEPT;
-
-  if (skb->mark & 0x4) {
-    lgerror(ret, "0x4 mark found");
-    return NF_ACCEPT;
-  }
-
-  ret = skb_linearize(skb);
-  if (ret < 0) {
-    lgerror(ret, "cannot linearize skb");
-    return NF_ACCEPT;
-  }
-
-  skb2 = skb_clone(skb, GFP_ATOMIC);
-
-  if (skb2->skb_iif != 0) {
-    dev = dev_get_by_index(&init_net, skb2->skb_iif);
-    if (!dev) {
-      // lgerror(ENODEV, "idx: %u skb->skb_iif local", skb->skb_iif);
-      // return NF_ACCEPT;
-    }
-    iif = dev->name;
-  } else {
-    iif = "empty";
-  }
-
-  dev_queue_xmit(skb2);
-  kfree_skb(skb2);
-  return NF_STOLEN;
-
-  lgerror(ret, ">iif: %s skb->dev->name: %s", iif, skb->dev->name);
-
-  if (strncmp(iif, "lo", sizeof("lo")))
-    return NF_ACCEPT;
-
-  if (strncmp(skb->dev->name, "lo", sizeof("lo")))
-    return NF_ACCEPT;
-
-  int vrd = process_packet(skb);
-
-  switch (vrd) {
-  case PKT_ACCEPT:
-    return NF_ACCEPT;
-  case PKT_DROP:
-    kfree_skb(skb);
-    return NF_STOLEN;
-  case PKT_PROCESSED:
-  default:
-    ret = send_raw_socket(skb);
-    if (ret < 0) {
-      lgerror(ret, "Failed to send packet");
-      return NF_ACCEPT;
-    }
-    kfree_skb(skb);
-    return NF_STOLEN;
-  }
 }
+//   if (skb->mark & 0x4) {
+//     lgerror(ret, "0x4 mark found");
+//     return NF_ACCEPT;
+//   }
+
+//   ret = skb_linearize(skb);
+//   if (ret < 0) {
+//     lgerror(ret, "cannot linearize skb");
+//     return NF_ACCEPT;
+//   }
+
+//   skb2 = skb_clone(skb, GFP_ATOMIC);
+
+//   if (skb2->skb_iif != 0) {
+//     dev = dev_get_by_index(&init_net, skb2->skb_iif);
+//     if (!dev) {
+//       // lgerror(ENODEV, "idx: %u skb->skb_iif local", skb->skb_iif);
+//       // return NF_ACCEPT;
+//     }
+//     iif = dev->name;
+//   } else {
+//     iif = "empty";
+//   }
+
+//   dev_queue_xmit(skb2);
+//   kfree_skb(skb2);
+//   return NF_STOLEN;
+
+//   lgerror(ret, ">iif: %s skb->dev->name: %s", iif, skb->dev->name);
+
+//   if (strncmp(iif, "lo", sizeof("lo")))
+//     return NF_ACCEPT;
+
+//   if (strncmp(skb->dev->name, "lo", sizeof("lo")))
+//     return NF_ACCEPT;
+
+//   int vrd = process_packet(skb);
+
+//   switch (vrd) {
+//   case PKT_ACCEPT:
+//     return NF_ACCEPT;
+//   case PKT_DROP:
+//     kfree_skb(skb);
+//     return NF_STOLEN;
+//   case PKT_PROCESSED:
+//   default:
+//     ret = send_raw_socket(skb);
+//     if (ret < 0) {
+//       lgerror(ret, "Failed to send packet");
+//       return NF_ACCEPT;
+//     }
+//     kfree_skb(skb);
+//     return NF_STOLEN;
+//   }
+// }
 
 // Netfilter hook operations
 static struct nf_hook_ops ykb_nf_reg __read_mostly = {

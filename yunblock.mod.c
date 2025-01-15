@@ -41,8 +41,8 @@ __used __section("__versions") =
 	"__x86_return_thunk\0\0"
 	"\x20\x00\x00\x00\xd0\x19\x95\xc4"
 	"nf_unregister_net_hook\0\0"
-	"\x14\x00\x00\x00\x35\x36\x3a\x1d"
-	"skb_clone\0\0\0"
+	"\x14\x00\x00\x00\xae\x5f\x7f\x06"
+	"skb_copy\0\0\0\0"
 	"\x10\x00\x00\x00\x63\xcd\x9a\x9e"
 	"arp_tbl\0"
 	"\x18\x00\x00\x00\x24\xfd\xde\x35"
@@ -68,4 +68,4 @@ __used __section("__versions") =
 MODULE_INFO(depends, "");
 
 
-MODULE_INFO(srcversion, "6CFDD469CCF5B5097FDBB6D");
+MODULE_INFO(srcversion, "4BD3A817F40A55A644F01D8");

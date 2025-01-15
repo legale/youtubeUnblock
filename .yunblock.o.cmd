@@ -1453,6 +1453,10 @@ deps_/home/ru/youtubeUnblock/yunblock.o := \
   include/linux/netfilter_ipv4.h \
     $(wildcard include/config/INET) \
   include/uapi/linux/netfilter_ipv4.h \
+  include/net/arp.h \
+  include/linux/if_arp.h \
+    $(wildcard include/config/FIREWIRE_NET) \
+  include/uapi/linux/if_arp.h \
   include/net/neighbour.h \
   include/net/rtnetlink.h \
   include/linux/rtnetlink.h \
@@ -1460,10 +1464,6 @@ deps_/home/ru/youtubeUnblock/yunblock.o := \
   include/uapi/linux/rtnetlink.h \
   include/uapi/linux/if_addr.h \
   include/net/netlink.h \
-  include/net/arp.h \
-  include/linux/if_arp.h \
-    $(wildcard include/config/FIREWIRE_NET) \
-  include/uapi/linux/if_arp.h \
   /home/ru/youtubeUnblock/logging.h \
   /home/ru/youtubeUnblock/config.h \
     $(wildcard include/config/SECTION_NUMBER) \
