@@ -1464,13 +1464,12 @@ deps_/home/ru/youtubeUnblock/yunblock.o := \
   include/uapi/linux/rtnetlink.h \
   include/uapi/linux/if_addr.h \
   include/net/netlink.h \
-  /home/ru/youtubeUnblock/logging.h \
-  /home/ru/youtubeUnblock/config.h \
-    $(wildcard include/config/SECTION_NUMBER) \
-    $(wildcard include/config/SET) \
-  /home/ru/youtubeUnblock/types.h \
-  include/linux/ip.h \
-  include/uapi/linux/ip.h \
+  include/net/route.h \
+  include/net/dst.h \
+  include/linux/rcuref.h \
+  include/linux/indirect_call_wrapper.h \
+  include/net/inetpeer.h \
+  include/net/ipv6.h \
   include/linux/ipv6.h \
     $(wildcard include/config/IPV6_ROUTER_PREF) \
     $(wildcard include/config/IPV6_ROUTE_INFO) \
@@ -1508,9 +1507,6 @@ deps_/home/ru/youtubeUnblock/yunblock.o := \
   arch/x86/include/generated/uapi/asm/poll.h \
   include/uapi/asm-generic/poll.h \
   include/uapi/linux/eventpoll.h \
-  include/linux/indirect_call_wrapper.h \
-  include/net/dst.h \
-  include/linux/rcuref.h \
   include/net/tcp_states.h \
   include/linux/net_tstamp.h \
   include/uapi/linux/net_tstamp.h \
@@ -1528,6 +1524,22 @@ deps_/home/ru/youtubeUnblock/yunblock.o := \
   include/uapi/linux/tcp.h \
   include/linux/udp.h \
   include/uapi/linux/udp.h \
+  include/linux/jump_label_ratelimit.h \
+  include/net/if_inet6.h \
+  include/net/inet_dscp.h \
+  include/net/ip_fib.h \
+  include/net/ndisc.h \
+  include/net/ipv6_stubs.h \
+  include/linux/icmpv6.h \
+  include/uapi/linux/in_route.h \
+  include/uapi/linux/route.h \
+  include/linux/ip.h \
+  include/uapi/linux/ip.h \
+  /home/ru/youtubeUnblock/logging.h \
+  /home/ru/youtubeUnblock/config.h \
+    $(wildcard include/config/SECTION_NUMBER) \
+    $(wildcard include/config/SET) \
+  /home/ru/youtubeUnblock/types.h \
   include/generated/uapi/linux/version.h \
 
 /home/ru/youtubeUnblock/yunblock.o: $(deps_/home/ru/youtubeUnblock/yunblock.o)
